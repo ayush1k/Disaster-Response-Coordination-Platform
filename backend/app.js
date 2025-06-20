@@ -1,12 +1,15 @@
-const express = require('express');
-const cors = require('cors');
+import express from 'express';
+import cors from 'cors';
+import disasterRoutes from './routes/disasters.js';
+import geocodeRoutes from './routes/geocode.js';
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Routes
-const disasterRoutes = require('./routes/disasters');
-app.use('/disasters', disasterRoutes);
+// Mount routes
+app.use('/disasters', disasterRoutes);  // e.g., POST /disasters
+app.use('/geocode', geocodeRoutes);     // e.g., POST /geocode
 
-module.exports = app;
+export default app;

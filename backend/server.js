@@ -1,7 +1,9 @@
-require('dotenv').config();
-const http = require('http');
-const app = require('./app');
-const { Server } = require('socket.io');
+import dotenv from 'dotenv';
+dotenv.config();
+
+import http from 'http';
+import app from './app.js'; // ✅ Make sure this file has .js extension
+import { Server } from 'socket.io';
 
 const PORT = process.env.PORT || 5000;
 

@@ -1,11 +1,12 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   createDisaster,
   getDisasters,
   updateDisaster,
   deleteDisaster
-} = require('../controllers/disasters');
+} from '../controllers/disasters.js';
+
+const router = express.Router();
 
 // Routes
 router.post('/', createDisaster);
@@ -13,4 +14,4 @@ router.get('/', getDisasters);
 router.put('/:id', updateDisaster);
 router.delete('/:id', deleteDisaster);
 
-module.exports = router;
+export default router;
