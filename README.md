@@ -1,74 +1,63 @@
-# 🌍 Disaster Response Coordination Platform
+# 🌍 Disaster Response Coordination Platform (Backend)
 
-This is a backend-heavy MERN stack application built to assist in real-time disaster management. It leverages geospatial data, AI location extraction, and mapping services to track and respond to ongoing disasters efficiently.
+A backend-heavy MERN stack application designed to aid real-time disaster management and response through data aggregation, geospatial queries, and live updates. This README documents progress until **Step 4: Real-Time Social Media Monitoring**.
 
 ---
 
-## ✅ Completed Steps (Up to Step 4)
+## ✅ Features Implemented (as per assignment)
 
-### 1. 🚀 Project Setup
-- Backend powered by **Node.js**, **Express.js**
-- PostgreSQL database hosted on **Supabase**
-- Realtime updates enabled via **Socket.IO**
-- Environment variables stored in `.env` (not committed)
+### 1. Disaster Data Management (CRUD)
+- **POST /disasters** – Create a new disaster.
+- **GET /disasters** – List all disasters, supports filter by tag.
+- **PUT /disasters/:id** – Update an existing disaster.
+- **DELETE /disasters/:id** – Delete a disaster.
+- Disaster model includes:
+  - `title`
+  - `location_name`
+  - `description`
+  - `tags`
+  - `owner_id` (mock auth)
+  - `created_at`
 
-### 2. 📦 Disaster Data Management (CRUD)
-- REST API for disaster operations:
-  - `POST /disasters`: Create a disaster
-  - `GET /disasters`: Get all disasters (supports `?tag=` filter)
-  - `PUT /disasters/:id`: Update disaster details
-  - `DELETE /disasters/:id`: Delete a disaster
-- Each disaster stores:
-  - `title`, `description`, `tags`, `owner_id`
-  - `created_at`, `audit_trail` (tracks `create`, `update`, `delete` actions with `user_id` and `timestamp`)
+### 2. Location Extraction and Geocoding
+- **POST /geocode**
+  - Uses **Google Gemini API** to extract location name from a disaster description.
+  - Uses **OpenStreetMap Nominatim API** to convert extracted location into `lat/lon`.
+- Integration steps:
+  - Gemini API prompt: _“Extract location from: [description]”_
+  - Nominatim endpoint: `https://nominatim.openstreetmap.org/search?q=...&format=json&limit=1`
 
-### 3. 🔐 Mock Authentication
-- Hardcoded users:
-  - `netrunnerX` (admin)
-  - `reliefAdmin` (contributor)
-- No real authentication yet (for testing only)
+### 3. WebSocket Setup
+- **Socket.IO** is configured and emits real-time updates.
+- Global `io` object set up for use in controllers.
+- Events:
+  - `disaster_updated`
+  - `social_media_updated` (already implemented)
 
-### 4. 📍 Location Extraction + Geocoding
-- 🧠 **Google Gemini API** used to extract location from unstructured descriptions
-  - Prompt example: `Extract location from: "There has been a severe flood in Guwahati due to heavy rainfall."`
-- 🗺️ **Nominatim (OpenStreetMap)** used to convert location names to geographic coordinates
-  - Geocoding API: `https://nominatim.openstreetmap.org/search?q=<query>&format=json&limit=1`
-- Extracted location and coordinates (`latitude`, `longitude`) stored in Supabase under each disaster
-- Example disaster entry after geocoding:
-  ```json
-  {
-    "title": "Flood in Guwahati",
-    "location_name": "Guwahati, Kamrup Metropolitan, Assam, India",
-    "latitude": 26.1806,
-    "longitude": 91.7539
-  }
- 
-
-
-
-
-
-
-
-
-
- --------------------------------------- 
- testing step 4 
- Create a disaster with embedded location in description:
- curl -X POST http://localhost:5000/disasters \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Flood in Guwahati",
-    "description": "There has been a severe flood in Guwahati due to heavy rainfall.",
-    "tags": ["flood", "northeast"],
-    "owner_id": "user_123"
-  }'
+### 4. Real-Time Social Media Monitoring
+- **GET /disasters/:id/social-media**
+  - Mock implementation using fake reports simulating posts like:
+    - `"Need help in Guwahati #floodrelief"`
+    - `"Supplies available near Guwahati railway station"`
+  - Emits `social_media_updated` with structured JSON.
+- Response example:
+```json
+{
+  "reports": [
+    {
+      "disaster_id": "c979...",
+      "user": "citizen1",
+      "post": "#floodrelief Need urgent help in Guwahati city center!",
+      "timestamp": "2025-06-22T13:56:47.862Z"
+    },
+    {
+      "disaster_id": "c979...",
+      "user": "volunteer42",
+      "post": "Supplies available near Guwahati railway station. #help",
+      "timestamp": "2025-06-22T13:56:47.863Z"
+    }
+  ]
+}
 
 
-  Expected Output:
-
-Disaster stored with location_name, latitude, and longitude
-
-audit_trail shows create action by user_123
-
-
+--------------
