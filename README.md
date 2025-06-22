@@ -1,102 +1,74 @@
-# Disaster-Response-Coordination-Platform
-✅ Phase 1: Setup & Environment Preparation
+# 🌍 Disaster Response Coordination Platform
 
-------------------------
-Step 1.1 — Setup Folder Structure
-Create a clean folder structure:
+This is a backend-heavy MERN stack application built to assist in real-time disaster management. It leverages geospatial data, AI location extraction, and mapping services to track and respond to ongoing disasters efficiently.
 
-disaster-platform/
-├── backend/
-│   ├── controllers/
-│   ├── routes/
-│   ├── utils/
-│   ├── services/
-│   ├── sockets/
-│   ├── app.js
-│   ├── server.js
-├── frontend/  # Keep this minimal for now
-├── .env
-├── README.md
+---
 
------------------------
-Step 1.2 — Install Dependencies
-Go to the backend folder and run:
+## ✅ Completed Steps (Up to Step 4)
 
-npm init -y
-npm install express supabase-js axios dotenv socket.io cors
-npm install nodemon --save-dev
-Create scripts in package.json:
+### 1. 🚀 Project Setup
+- Backend powered by **Node.js**, **Express.js**
+- PostgreSQL database hosted on **Supabase**
+- Realtime updates enabled via **Socket.IO**
+- Environment variables stored in `.env` (not committed)
 
-"scripts": {
-  "start": "node server.js",
-  "dev": "nodemon server.js"
-}
+### 2. 📦 Disaster Data Management (CRUD)
+- REST API for disaster operations:
+  - `POST /disasters`: Create a disaster
+  - `GET /disasters`: Get all disasters (supports `?tag=` filter)
+  - `PUT /disasters/:id`: Update disaster details
+  - `DELETE /disasters/:id`: Delete a disaster
+- Each disaster stores:
+  - `title`, `description`, `tags`, `owner_id`
+  - `created_at`, `audit_trail` (tracks `create`, `update`, `delete` actions with `user_id` and `timestamp`)
 
-----------------------
-Step 1.3 — Setup .env File
+### 3. 🔐 Mock Authentication
+- Hardcoded users:
+  - `netrunnerX` (admin)
+  - `reliefAdmin` (contributor)
+- No real authentication yet (for testing only)
 
-PORT=5000
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_anon_key
-GEMINI_API_KEY=your_google_gemini_api_key
-MAPBOX_KEY=your_mapbox_key (if using Mapbox)
-
----------------------------
-🔁 Phase 2: Supabase Setup
-Step 2.1 — Create a Free Supabase Project
-Go to supabase.com → create project.
-
-----------------------------
-
-Step 2.2 — Setup Tables in Supabase
-Create the following tables via SQL Editor:
+### 4. 📍 Location Extraction + Geocoding
+- 🧠 **Google Gemini API** used to extract location from unstructured descriptions
+  - Prompt example: `Extract location from: "There has been a severe flood in Guwahati due to heavy rainfall."`
+- 🗺️ **Nominatim (OpenStreetMap)** used to convert location names to geographic coordinates
+  - Geocoding API: `https://nominatim.openstreetmap.org/search?q=<query>&format=json&limit=1`
+- Extracted location and coordinates (`latitude`, `longitude`) stored in Supabase under each disaster
+- Example disaster entry after geocoding:
+  ```json
+  {
+    "title": "Flood in Guwahati",
+    "location_name": "Guwahati, Kamrup Metropolitan, Assam, India",
+    "latitude": 26.1806,
+    "longitude": 91.7539
+  }
+ 
 
 
--- disasters
-CREATE TABLE disasters (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT,
-  location_name TEXT,
-  location GEOGRAPHY,
-  description TEXT,
-  tags TEXT[],
-  owner_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  audit_trail JSONB
-);
 
--- reports
-CREATE TABLE reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  disaster_id UUID REFERENCES disasters(id),
-  user_id TEXT,
-  content TEXT,
-  image_url TEXT,
-  verification_status TEXT DEFAULT 'pending',
-  created_at TIMESTAMPTZ DEFAULT now()
-);
 
--- resources
-CREATE TABLE resources (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  disaster_id UUID REFERENCES disasters(id),
-  name TEXT,
-  location_name TEXT,
-  location GEOGRAPHY,
-  type TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
 
--- cache
-CREATE TABLE cache (
-  key TEXT PRIMARY KEY,
-  value JSONB,
-  expires_at TIMESTAMPTZ
-);
 
--- Indexes
-CREATE INDEX disasters_location_idx ON disasters USING GIST(location);
-CREATE INDEX resources_location_idx ON resources USING GIST(location);
-CREATE INDEX disasters_tags_idx ON disasters USING GIN(tags);
 
----------------------------
+
+
+ --------------------------------------- 
+ testing step 4 
+ Create a disaster with embedded location in description:
+ curl -X POST http://localhost:5000/disasters \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Flood in Guwahati",
+    "description": "There has been a severe flood in Guwahati due to heavy rainfall.",
+    "tags": ["flood", "northeast"],
+    "owner_id": "user_123"
+  }'
+
+
+  Expected Output:
+
+Disaster stored with location_name, latitude, and longitude
+
+audit_trail shows create action by user_123
+
+
