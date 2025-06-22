@@ -1,51 +1,50 @@
 import express from 'express';
-import axios from 'axios';
-
 const router = express.Router();
+import fetch from 'node-fetch';
+
+// Simple location extractor using known cities (extendable)
+function extractLocation(description) {
+  const knownPlaces = ['Guwahati', 'Delhi', 'Mumbai', 'Chennai', 'Nainital', 'Kolkata', 'Lucknow'];
+  for (const place of knownPlaces) {
+    if (description.toLowerCase().includes(place.toLowerCase())) {
+      return place;
+    }
+  }
+  return null;
+}
 
 router.post('/', async (req, res) => {
   const { description } = req.body;
+  const locationName = extractLocation(description);
+
+  if (!locationName) {
+    return res.status(400).json({ error: 'Location not found' });
+  }
+
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationName)}&format=json&limit=1`;
 
   try {
-    const prompt = `
-Extract the most relevant location mentioned in the following description and return its name along with its approximate latitude and longitude as a JSON object with the fields: "location_name", "latitude", and "longitude".
-
-Description: "${description}"
-
-Return only valid JSON, no text before or after it.
-    `.trim();
-
-    console.log("🔍 Sending prompt to Gemini:\n", prompt);
-
-    const geminiResponse = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${process.env.GEMINI_API_KEY}`
-,
-      {
-        contents: [
-          {
-            parts: [{ text: prompt }]
-          }
-        ]
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Disaster-Response-App (youremail@example.com)'
       }
-    );
+    });
 
-    const raw = geminiResponse?.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    console.log("📥 Gemini Raw Response:\n", raw);
+    const data = await response.json();
 
-    const match = raw.match(/\{[\s\S]*?\}/);
-    if (!match) throw new Error('No JSON object found in response');
-
-    const parsed = JSON.parse(match[0]);
-
-    if (!parsed.location_name || !parsed.latitude || !parsed.longitude) {
-      throw new Error('Incomplete geocode data from Gemini');
+    if (data.length === 0) {
+      return res.status(404).json({ error: 'Location not found' });
     }
 
-    res.json(parsed);
+    const { lat, lon } = data[0];
 
+    res.json({
+      location_name: locationName,
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lon)
+    });
   } catch (error) {
-    console.error('❌ Gemini Geocode Error:', error.message);
-    res.status(500).json({ error: 'Failed to extract location or coordinates' });
+    res.status(500).json({ error: 'Geocoding failed', details: error.message });
   }
 });
 
