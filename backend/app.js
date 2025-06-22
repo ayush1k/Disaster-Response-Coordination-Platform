@@ -1,17 +1,21 @@
 import express from 'express';
 import cors from 'cors';
+
 import disasterRoutes from './routes/disasters.js';
 import geocodeRoutes from './routes/geocode.js';
 import resourceRoutes from './routes/resources.js';
+import disasterRoutesAlt from './routes/disasterRoutes.js'; // Rename one of these!
+import officialUpdatesRoutes from './routes/officialUpdates.js'; // ✅ add this
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Mount routes
-app.use('/disasters', disasterRoutes);  // e.g., POST /disasters
-app.use('/geocode', geocodeRoutes);     // e.g., POST /geocode
+app.use('/disasters', disasterRoutes);
 app.use('/disasters', resourceRoutes);
+app.use('/disasters', officialUpdatesRoutes); // ✅ mount here
+app.use('/geocode', geocodeRoutes);
+app.use('/', disasterRoutesAlt); // avoid duplicate paths
 
 export default app;
