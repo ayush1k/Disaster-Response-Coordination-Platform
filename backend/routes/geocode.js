@@ -1,64 +1,59 @@
 import express from 'express';
 import fetch from 'node-fetch';
-import nlp from 'compromise';
 
 const router = express.Router();
 
-// Improved NLP-based location extractor
-function extractCandidateLocation(text) {
-  const doc = nlp(text);
+function extractCandidateLocation(description) {
+  const regex = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\b/g;
+  const matches = [...description.matchAll(regex)].map(m => m[1]);
 
-  // Try to extract proper nouns (likely place names)
-  let candidates = doc
-    .nouns()
-    .if('#ProperNoun')
-    .out('array');
+  const priority = [
+    'Delhi', 'Mumbai', 'Patna', 'Kathmandu', 'Guwahati', 'Shimla',
+    'Port Blair', 'Munnar', 'Itanagar', 'Bhuj'
+  ];
 
-  // Clean up: remove stopwords or prepositions like "due", "because"
-  const blacklist = ['there', 'here', 'someone', 'anywhere', 'due', 'because', 'at', 'in', 'on', 'to'];
-  candidates = candidates.map(word => word.trim().split(' ')[0]); // Take first word only
-  candidates = candidates.filter(
-    word => word && !blacklist.includes(word.toLowerCase())
-  );
-
-  return candidates.length > 0 ? candidates[0] : null;
-}
-
-// POST /geocode
-router.post('/', async (req, res) => {
-  const { description } = req.body;
-
-  const location = extractCandidateLocation(description);
-  console.log('🧠 Extracted location:', location);
-
-  if (!location) {
-    return res.status(400).json({ error: 'No valid location found in description' });
+  for (const loc of matches) {
+    if (priority.some(p => loc.toLowerCase().includes(p.toLowerCase()))) {
+      return loc;
+    }
   }
 
-  // Use Nominatim to geocode the location
-  const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-    location
-  )}&format=json&limit=1`;
+  return matches[0] || null;
+}
 
+router.post('/', async (req, res) => {
   try {
-    const response = await fetch(nominatimUrl, {
-      headers: { 'User-Agent': 'DisasterResponsePlatform/1.0' }
-    });
-    const data = await response.json();
+    const { description } = req.body;
+    if (!description) {
+      return res.status(400).json({ error: 'Missing description field' });
+    }
 
-    if (!data || data.length === 0) {
+    const locationCandidate = extractCandidateLocation(description);
+    if (!locationCandidate) {
+      return res.status(400).json({ error: 'Could not extract a location' });
+    }
+
+    console.log('🧠 Extracted location:', locationCandidate);
+
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationCandidate)}&limit=1`;
+    const response = await fetch(nominatimUrl, {
+      headers: { 'User-Agent': 'DisasterResponseApp/1.0' },
+    });
+
+    const data = await response.json();
+    if (!data.length) {
       return res.status(404).json({ error: 'No results from geocoding API' });
     }
 
-    const place = data[0];
+    const result = data[0];
     res.json({
-      location_name: place.display_name,
-      latitude: parseFloat(place.lat),
-      longitude: parseFloat(place.lon)
+      location_name: result.display_name,
+      latitude: parseFloat(result.lat),
+      longitude: parseFloat(result.lon),
     });
-  } catch (err) {
-    console.error('Nominatim error:', err.message);
-    res.status(500).json({ error: 'Geocoding service failed' });
+  } catch (error) {
+    console.error('Geocoding Error:', error.message);
+    res.status(500).json({ error: 'Server error during geocoding' });
   }
 });
 
