@@ -1,63 +1,98 @@
-# 🌍 Disaster Response Coordination Platform (Backend)
+# 🌐 Disaster Response Coordination Platform (Backend)
 
-A backend-heavy MERN stack application designed to aid real-time disaster management and response through data aggregation, geospatial queries, and live updates. This README documents progress until **Step 4: Real-Time Social Media Monitoring**.
+A real-time backend platform to coordinate disaster relief efforts using geospatial intelligence, AI, and open data. Built with **Node.js**, **Express**, **Supabase (PostgreSQL + PostGIS)**, **Socket.IO**, and the **Gemini API**.
 
 ---
 
-## ✅ Features Implemented (as per assignment)
+## ✅ Features Implemented So Far
 
-### 1. Disaster Data Management (CRUD)
-- **POST /disasters** – Create a new disaster.
-- **GET /disasters** – List all disasters, supports filter by tag.
-- **PUT /disasters/:id** – Update an existing disaster.
-- **DELETE /disasters/:id** – Delete a disaster.
-- Disaster model includes:
-  - `title`
-  - `location_name`
-  - `description`
-  - `tags`
-  - `owner_id` (mock auth)
-  - `created_at`
+### 1. 📦 Disaster Management (CRUD)
+- Create, read, update, and delete disaster reports.
+- Each disaster contains:
+  - `title`, `description`, `location_name`, `lat`, `lon`, `tags`, `created_at`, `owner_id`
+- Data stored in Supabase PostgreSQL with PostGIS support.
+- Emits `disaster_updated` WebSocket events on change.
 
-### 2. Location Extraction and Geocoding
-- **POST /geocode**
-  - Uses **Google Gemini API** to extract location name from a disaster description.
-  - Uses **OpenStreetMap Nominatim API** to convert extracted location into `lat/lon`.
-- Integration steps:
-  - Gemini API prompt: _“Extract location from: [description]”_
-  - Nominatim endpoint: `https://nominatim.openstreetmap.org/search?q=...&format=json&limit=1`
+### 2. 📍 Location Extraction & Geocoding
+- Extracts location name from disaster descriptions using **Gemini API**.
+- Geocodes location using **Nominatim (OpenStreetMap)**.
+- Handles empty or irrelevant descriptions gracefully.
 
-### 3. WebSocket Setup
-- **Socket.IO** is configured and emits real-time updates.
-- Global `io` object set up for use in controllers.
-- Events:
-  - `disaster_updated`
-  - `social_media_updated` (already implemented)
+### 3. 🌐 WebSockets (Real-Time)
+- Setup using **Socket.IO**.
+- Emits:
+  - `disaster_updated` when disasters change.
+  - `social_media_updated` when new reports arrive.
 
-### 4. Real-Time Social Media Monitoring
-- **GET /disasters/:id/social-media**
-  - Mock implementation using fake reports simulating posts like:
-    - `"Need help in Guwahati #floodrelief"`
-    - `"Supplies available near Guwahati railway station"`
-  - Emits `social_media_updated` with structured JSON.
-- Response example:
-```json
-{
-  "reports": [
-    {
-      "disaster_id": "c979...",
-      "user": "citizen1",
-      "post": "#floodrelief Need urgent help in Guwahati city center!",
-      "timestamp": "2025-06-22T13:56:47.862Z"
-    },
-    {
-      "disaster_id": "c979...",
-      "user": "volunteer42",
-      "post": "Supplies available near Guwahati railway station. #help",
-      "timestamp": "2025-06-22T13:56:47.863Z"
-    }
-  ]
-}
+### 4. 📢 Social Media Monitoring (Mocked)
+- Endpoint: `GET /disasters/:id/social-media`
+- Returns simulated tweets/posts for disasters.
+- Emits live updates via `social_media_updated`.
+
+### 5. 🗺️ Geospatial Resource Mapping
+- Endpoint: `GET /disasters/:id/resources?lat=...&lon=...`
+- Uses **PostGIS** and Supabase RPC function `get_nearby_resources` to fetch shelters, food, hospitals within 10 km.
+
+---
+
+## 🔧 Setup Instructions
+
+### 1. Clone this Repository
+```bash
+git clone https://github.com/yourusername/disaster-platform.git
+cd disaster-platform
+ 
 
 
---------------
+Install Dependencies
+npm install
+
+
+Configure Environment Variables
+Create a .env file:
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+GEMINI_API_KEY=your-gemini-api-key
+PORT=3000
+
+
+Run the Server
+node index.js
+
+
+📌 API Endpoints
+✅ Disaster CRUD
+POST /disasters
+
+GET /disasters/:id
+
+PUT /disasters/:id
+
+DELETE /disasters/:id
+
+✅ Geocoding
+POST /geocode
+Request: { description: "Bridge collapsed near Delhi" }
+Response: { location_name: "Delhi", lat: 28.61, lon: 77.23 }
+
+✅ Social Media Reports (Mocked)
+GET /disasters/:id/social-media
+Returns mock Twitter-style posts.
+
+✅ Nearby Resources
+GET /disasters/:id/resources?lat=...&lon=...
+Returns shelters, hospitals, etc. from Supabase.
+
+🧩 Tech Stack
+Backend: Node.js, Express.js
+
+Database: Supabase (PostgreSQL + PostGIS)
+
+Real-time: Socket.IO
+
+AI APIs: Google Gemini (for location extraction)
+
+Geocoding: Nominatim (OpenStreetMap)
+
+
+
